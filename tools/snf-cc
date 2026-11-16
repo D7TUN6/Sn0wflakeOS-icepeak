@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# Sn0wflakeOS C compiler driver.
+#
+#   tools/snf-cc hello.c -o hello
+#
+# The guest has no dynamic loader, so programs are freestanding static ELF64
+# images linked at 0x400000000000 against the small in-tree libc.
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+CC="${CC:-cc}"
+BUILD="$ROOT/build"
+
+if [ ! -f "$BUILD/crt0.o" ] || [ ! -f "$BUILD/libsnf.a" ]; then
+    echo "snf-cc: run ./build.sh first (missing crt0.o/libsnf.a)" >&2
+    exit 1
+fi
+
+exec "$CC" \
+    -nostdlib -static -no-pie -fno-pic -mcmodel=large -fno-stack-protector -fno-builtin \
+    -ffreestanding \
+    -I"$ROOT/libc/include" \
+    -Wl,-T,"$ROOT/user/linker.ld" \
+    -Wl,--build-id=none -Wl,-z,norelro \
+    "$@" \
+    "$BUILD/crt0.o" "$BUILD/libsnf.a" -lgcc

@@ -1,0 +1,29 @@
+# Build output
+/build/
+/target/
+/kernel/target/
+/user/target/
+*.o
+*.rlib
+*.iso
+*.img
+*.bin
+
+# Local run state
+/disk.img
+*.log
+*.ppm
+/serial*.txt
+/sn0wflake.iso.sha256
+
+# Nix
+/result
+/result-*
+.direnv/
+
+# Editors and OS noise
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store

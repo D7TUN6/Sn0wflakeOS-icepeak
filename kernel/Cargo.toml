@@ -1,0 +1,30 @@
+[package]
+name = "icepeak"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "icepeak"
+path = "src/main.rs"
+
+[dependencies]
+abi = { path = "../abi" }
+
+# Development builds stay close to the source: no experimental optimisation,
+# full debug information and overflow checks.
+[profile.dev]
+opt-level = 0
+debug = true
+lto = false
+codegen-units = 256
+panic = "abort"
+overflow-checks = true
+
+# Release builds target the smallest, fastest single-unit image.
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"
+debug = false

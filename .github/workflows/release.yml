@@ -1,0 +1,72 @@
+name: release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  VERSION: 0.1.0-alpha
+
+jobs:
+  iso:
+    name: ISO ${{ matrix.arch }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        # The kernel is x86_64 long mode only. A 32-bit i386 image needs the
+        # 32-bit port tracked in ROADMAP.md; add it here once that builds.
+        include:
+          - arch: x86_64
+            packages: nasm xorriso mtools gcc binutils
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ${{ matrix.packages }}
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build release ISO
+        run: ./build.sh release
+
+      - name: Name and checksum
+        run: |
+          set -euo pipefail
+          test -s sn0wflake.iso
+          asset="sn0wflake-${VERSION}-${{ matrix.arch }}.iso"
+          mv sn0wflake.iso "$asset"
+          sha256sum "$asset" > "$asset.sha256"
+          cat "$asset.sha256"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sn0wflake-${{ matrix.arch }}
+          path: |
+            sn0wflake-*.iso
+            sn0wflake-*.iso.sha256
+          if-no-files-found: error
+
+      - name: Attach to release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: |
+            sn0wflake-*.iso
+            sn0wflake-*.iso.sha256
+          fail_on_unmatched_files: true
